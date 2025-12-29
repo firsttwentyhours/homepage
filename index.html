@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RPG Skill Trainer</title>
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<style>
+body {
+  background:#0e0e0e;
+  color:#f5d58b;
+  font-family: monospace;
+  padding:40px;
+}
+
+h1 { margin-bottom: 10px; }
+
+input, button, textarea {
+  background:#111;
+  border:1px solid #444;
+  color:#f5d58b;
+  padding:10px;
+  margin-top:8px;
+  font-family: monospace;
+}
+
+button { cursor:pointer; }
+button:hover { background:#222; }
+
+.skill {
+  margin-top:20px;
+  border:1px solid #333;
+  padding:15px;
+  position: relative;
+  border-radius:8px;
+  transition: all 0.3s ease;
+}
+
+.skill-icon {
+  display:inline-block;
+  width:20px; height:20px;
+  background:#f5d58b;
+  margin-right:6px;
+  border-radius:4px;
+}
+
+.progress, .xp-progress {
+  height:10px;
+  background:#222;
+  margin-top:10px;
+  overflow:hidden;
+  border-radius:5px;
+}
+
+.bar { height:100%; width:0%; background:#f5d58b; }
+.xp-bar { height:100%; width:0%; background:#ffa500; }
+
+.timer { margin-top:8px; font-size:16px; }
+.level { font-size:14px; color:#00ff00; }
+
+#anim { display:flex; gap:8px; margin-top:30px; }
+.square { width:14px; height:14px; background:#f5d58b; }
+
+.active-skill { box-shadow: 0 0 10px #f5d58b; animation: glow 1s infinite alternate; }
+@keyframes glow { from { box-shadow:0 0 5px #f5d58b; } to { box-shadow:0 0 20px #f5d58b; } }
+
+.level-up-toast {
+  position: fixed;
+  top: 20px; right: 20px;
+  background:#00ff00;
+  color:#0e0e0e;
+  padding:10px 20px;
+  border-radius:6px;
+  opacity:0;
+  pointer-events:none;
+  font-weight:bold;
+  z-index: 1000;
+}
+
+.level-up { animation: levelFlash 1s ease forwards; }
+@keyframes levelFlash { 0% { box-shadow:0 0 10px #00ff00; } 50% { box-shadow:0 0 25px #00ff00; transform: scale(1.05);} 100% { box-shadow:0 0 10px #00ff00; transform: scale(1);} }
+
+#reflectionPanel {
+  position:fixed; bottom:20px; left:20px;
+  background:#111; border:1px solid #444;
+  padding:15px; border-radius:8px;
+  max-height:300px; overflow:auto;
+  width:250px; color:#f5d58b;
+}
+#reflectionPanel h3 { margin-top:0; }
+
+/* Reflection Modal */
+.reflection-modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1a1a;
+  border: 2px solid #444;
+  border-radius: 10px;
+  padding: 20px;
+  width: 400px;
+  max-width: 90vw;
+  z-index: 1001;
+  display: none;
+}
+
+.reflection-modal.active {
+  display: block;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  display: none;
+}
+
+.modal-overlay.active {
+  display: block;
+}
+
+.reflection-modal h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+}
+
+.reflection-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 15px 0;
+  padding-right: 10px;
+}
+
+.reflection-item {
+  background: #111;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 5px;
+  border-left: 3px solid #f5d58b;
+}
+
+.reflection-date {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 5px;
+}
+
+.reflection-text {
+  font-size: 14px;
+}
+
+/* Edit Skill Modal */
+.edit-modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1a1a;
+  border: 2px solid #444;
+  border-radius: 10px;
+  padding: 20px;
+  width: 350px;
+  max-width: 90vw;
+  z-index: 1001;
+  display: none;
+}
+
+.edit-modal.active {
+  display: block;
+}
+
+.edit-modal input {
+  width: calc(100% - 22px);
+  margin-bottom: 15px;
+}
+
+.edit-modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Save Button */
+#saveBtn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #00ff00;
+  color: #0e0e0e;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 999;
+}
+
+#saveBtn:hover {
+  background: #00cc00;
+}
+
+#saveBtn:active {
+  transform: scale(0.95);
+}
+
+.skill-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skill-actions button {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.reflection-btn {
+  background: #444 !important;
+}
+
+.reflection-btn:hover {
+  background: #555 !important;
+}
+
+.edit-btn {
+  background: #2a5c8b !important;
+}
+
+.edit-btn:hover {
+  background: #3a6c9b !important;
+}
+</style>
+</head>
+<body>
+
+<h1>RPG Skill Trainer</h1>
+
+<input id="skillInput" placeholder="Enter skill name">
+<button onclick="addSkill()">Add Skill</button>
+<button onclick="resetAll()">Reset Everything</button>
+
+<div id="skills"></div>
+
+<button id="saveBtn" onclick="saveProgress()">💾 Save Progress</button>
+
+<div id="anim">
+  <div class="square"></div>
+  <div class="square"></div>
+  <div class="square"></div>
+</div>
+
+<div id="reflectionPanel">
+  <h3>Reflections</h3>
+  <ul id="reflections"></ul>
+</div>
+
+<!-- Modals -->
+<div id="modalOverlay" class="modal-overlay"></div>
+
+<!-- Reflection Modal -->
+<div id="reflectionModal" class="reflection-modal">
+  <h3>📝 Reflections for <span id="modalSkillName"></span></h3>
+  <div id="reflectionList" class="reflection-list"></div>
+  <textarea id="newReflection" placeholder="Write your reflection for this milestone..." rows="4"></textarea>
+  <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end;">
+    <button onclick="addNewReflection()">Add Reflection</button>
+    <button onclick="closeModal()" style="background: #555;">Close</button>
+  </div>
+</div>
+
+<!-- Edit Skill Modal -->
+<div id="editModal" class="edit-modal">
+  <h3>✏️ Edit Skill</h3>
+  <input type="text" id="editSkillName" placeholder="Skill name">
+  <input type="number" id="editSkillTime" placeholder="Time in minutes" step="0.1">
+  <div class="edit-modal-buttons">
+    <button onclick="saveEdit()">Save</button>
+    <button onclick="closeEditModal()" style="background: #555;">Cancel</button>
+  </div>
+</div>
+
+<div id="toast" class="level-up-toast"></div>
+
+<script>
+// Initialize skills from localStorage or create empty array
+let skills = JSON.parse(localStorage.getItem("skills") || "[]");
+let active = null;
+let running = false;
+let lastTick = Date.now();
+let currentSkillIndex = null;
+let editingSkillIndex = null;
+
+// Load saved data from session (for GitHub Pages persistence)
+function loadSavedData() {
+  try {
+    const saved = localStorage.getItem("skills");
+    if (saved) {
+      skills = JSON.parse(saved);
+      
+      // Convert old format to new format if needed
+      skills.forEach(skill => {
+        if (!skill.reflections) skill.reflections = [];
+        if (!skill.lastSaved) skill.lastSaved = Date.now();
+      });
+    }
+  } catch (e) {
+    console.error("Error loading data:", e);
+  }
+}
+
+// ---------------- CORE ----------------
+function addSkill() {
+  const name = document.getElementById("skillInput").value.trim();
+  if (!name) return;
+  skills.push({ 
+    name, 
+    time:0, 
+    xp:0, 
+    level:1, 
+    points:0, 
+    milestones:0,
+    reflections: [],
+    lastSaved: Date.now()
+  });
+  saveProgress();
+  document.getElementById("skillInput").value = "";
+  document.getElementById("skillInput").focus();
+  render();
+}
+
+function toggleSkill(index) {
+  if(active===index){ running = !running; } 
+  else { active=index; running=true; }
+  lastTick = Date.now();
+  animatePulse();
+  render();
+}
+
+function resetAll() {
+  if(!confirm("Reset everything? This cannot be undone!")) return;
+  skills=[]; active=null; running=false;
+  localStorage.removeItem("skills");
+  render();
+  showToast("All progress reset!");
+}
+
+// ---------------- TIMER LOOP ----------------
+function xpForNext(level){ return 50*level*level; }
+
+function loop(){
+  if(running && active!==null){
+    const now = Date.now();
+    const delta = now - lastTick;
+    lastTick = now;
+
+    const skill = skills[active];
+    skill.time += delta;
+    skill.xp += delta/1000;
+
+    // Level up logic
+    const nextXP = xpForNext(skill.level);
+    if(skill.xp >= nextXP){
+      skill.level++;
+      skill.points++;
+      skill.xp -= nextXP;
+      flashLevelUp(active);
+      showToast(`${skill.name} reached Lv ${skill.level}!`);
+    }
+
+    // Hour milestones: every 3600s (~1 hour)
+    const hours = Math.floor(skill.time/3600000);
+    if(hours > skill.milestones){
+      skill.milestones = hours;
+      // Don't auto-add reflection - let user add their own
+      showToast(`${skill.name}: ${hours} hour(s) completed! Add a reflection!`);
+      
+      // Auto-save on milestone
+      setTimeout(saveProgress, 1000);
+    }
+
+    localStorage.setItem("skills", JSON.stringify(skills));
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+// ---------------- UI ----------------
+function render(){
+  const wrap=document.getElementById("skills");
+  wrap.innerHTML="";
+
+  skills.forEach((s,i)=>{
+    const percent = Math.min((s.time/(20*60*60*1000))*100,100);
+    const xpPercent = Math.min((s.xp/xpForNext(s.level))*100,100);
+    const hours = Math.floor(s.time/3600000);
+    const minutes = ((s.time % 3600000)/60000).toFixed(1);
+
+    const div=document.createElement("div");
+    div.className = "skill"+(active===i&&running?" active-skill":"");
+    div.innerHTML=`
+      <span class="skill-icon"></span>
+      <strong>${s.name}</strong> <span class="level">Lv ${s.level} | SP: ${s.points}</span>
+      <div class="timer">${hours > 0 ? hours + 'h ' : ''}${minutes}m total</div>
+      <div class="progress"><div class="bar" id="bar-${i}"></div></div>
+      <div class="xp-progress"><div class="xp-bar" id="xp-${i}"></div></div>
+      <div class="skill-actions">
+        <button onclick="toggleSkill(${i})">${active===i&&running?"⏸ Pause":"▶ Start"}</button>
+        <button class="reflection-btn" onclick="openReflections(${i})">📖 Reflections (${s.reflections.length})</button>
+        <button class="edit-btn" onclick="openEditModal(${i})">✏️ Edit</button>
+      </div>
+      <div style="font-size: 11px; color: #666; margin-top: 8px;">
+        Last saved: ${formatTime(s.lastSaved)}
+      </div>
+    `;
+    wrap.appendChild(div);
+
+    anime({ targets:`#bar-${i}`, width:percent+"%", easing:"easeOutCubic", duration:600 });
+    anime({ targets:`#xp-${i}`, width:xpPercent+"%", easing:"easeOutCubic", duration:600 });
+  });
+}
+
+// ---------------- SAVE FUNCTION ----------------
+function saveProgress() {
+  try {
+    // Update lastSaved timestamp for all skills
+    skills.forEach(skill => {
+      skill.lastSaved = Date.now();
+    });
+    
+    localStorage.setItem("skills", JSON.stringify(skills));
+    
+    // Show save animation
+    const saveBtn = document.getElementById("saveBtn");
+    saveBtn.textContent = "💾 Saved!";
+    saveBtn.style.background = "#00cc00";
+    
+    anime({
+      targets: saveBtn,
+      scale: [1, 1.1, 1],
+      duration: 300,
+      easing: 'easeInOutSine'
+    });
+    
+    setTimeout(() => {
+      saveBtn.textContent = "💾 Save Progress";
+      saveBtn.style.background = "#00ff00";
+    }, 1500);
+    
+    showToast("Progress saved successfully!");
+    
+    // For GitHub Pages, we could implement cloud save here
+    // (Would require a backend or GitHub API integration)
+    
+  } catch (e) {
+    showToast("Error saving progress!");
+    console.error("Save error:", e);
+  }
+}
+
+// ---------------- REFLECTION SYSTEM ----------------
+function openReflections(index) {
+  currentSkillIndex = index;
+  const skill = skills[index];
+  
+  document.getElementById("modalSkillName").textContent = skill.name;
+  const list = document.getElementById("reflectionList");
+  list.innerHTML = "";
+  
+  if (skill.reflections.length === 0) {
+    list.innerHTML = '<div class="reflection-item"><em>No reflections yet. Add your first one!</em></div>';
+  } else {
+    // Show newest first
+    [...skill.reflections].reverse().forEach(ref => {
+      const item = document.createElement("div");
+      item.className = "reflection-item";
+      item.innerHTML = `
+        <div class="reflection-date">${formatTime(ref.timestamp)} - ${ref.milestone}</div>
+        <div class="reflection-text">${ref.text}</div>
+      `;
+      list.appendChild(item);
+    });
+  }
+  
+  document.getElementById("newReflection").value = "";
+  openModal();
+}
+
+function addNewReflection() {
+  const text = document.getElementById("newReflection").value.trim();
+  if (!text) {
+    showToast("Please enter a reflection!");
+    return;
+  }
+  
+  const skill = skills[currentSkillIndex];
+  const hours = Math.floor(skill.time/3600000);
+  
+  skill.reflections.push({
+    text: text,
+    timestamp: Date.now(),
+    milestone: `${hours} hour(s) completed`,
+    level: skill.level
+  });
+  
+  saveProgress();
+  
+  // Clear and update
+  document.getElementById("newReflection").value = "";
+  openReflections(currentSkillIndex); // Refresh list
+  
+  showToast("Reflection added!");
+}
+
+// ---------------- EDIT SKILL SYSTEM ----------------
+function openEditModal(index) {
+  editingSkillIndex = index;
+  const skill = skills[index];
+  
+  document.getElementById("editSkillName").value = skill.name;
+  document.getElementById("editSkillTime").value = (skill.time/60000).toFixed(1);
+  
+  openEditModalUI();
+}
+
+function openEditModalUI() {
+  document.getElementById("editModal").classList.add("active");
+  document.getElementById("modalOverlay").classList.add("active");
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").classList.remove("active");
+  document.getElementById("modalOverlay").classList.remove("active");
+  editingSkillIndex = null;
+}
+
+function saveEdit() {
+  const newName = document.getElementById("editSkillName").value.trim();
+  const newTime = parseFloat(document.getElementById("editSkillTime").value);
+  
+  if (!newName) {
+    showToast("Skill name cannot be empty!");
+    return;
+  }
+  
+  if (isNaN(newTime) || newTime < 0) {
+    showToast("Please enter a valid time!");
+    return;
+  }
+  
+  const skill = skills[editingSkillIndex];
+  skill.name = newName;
+  skill.time = newTime * 60000; // Convert minutes to milliseconds
+  
+  // Recalculate level based on new time
+  const xpFromTime = newTime * 60; // Convert minutes to seconds of XP
+  let level = 1;
+  let xp = xpFromTime;
+  
+  while (xp >= xpForNext(level)) {
+    xp -= xpForNext(level);
+    level++;
+  }
+  
+  skill.level = level;
+  skill.xp = xp;
+  skill.points = level - 1; // Assuming 1 point per level
+  
+  saveProgress();
+  closeEditModal();
+  render();
+  showToast("Skill updated!");
+}
+
+// ---------------- MODAL FUNCTIONS ----------------
+function openModal() {
+  document.getElementById("reflectionModal").classList.add("active");
+  document.getElementById("modalOverlay").classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("reflectionModal").classList.remove("active");
+  document.getElementById("modalOverlay").classList.remove("active");
+  document.getElementById("editModal").classList.remove("active");
+  currentSkillIndex = null;
+}
+
+// Close modals when clicking overlay
+document.getElementById("modalOverlay").addEventListener("click', closeModal);
+
+// ---------------- ANIMATIONS ----------------
+function animatePulse(){
+  anime({ targets:'.square', translateX:[0,30], direction:'alternate', easing:'easeInOutSine', duration:400, delay:anime.stagger(100) });
+}
+
+function flashLevelUp(index){
+  const skillDiv = document.getElementById("skills").children[index];
+  skillDiv.classList.add("level-up");
+  setTimeout(()=>skillDiv.classList.remove("level-up"),1000);
+}
+
+// ---------------- TOAST & UTILITIES ----------------
+function showToast(message){
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  anime({
+    targets: toast,
+    opacity:[0,1],
+    translateY:[-20,0],
+    duration:500,
+    easing:'easeOutCubic'
+  });
+  setTimeout(()=>{
+    anime({targets:toast,opacity:[1,0],translateY:[0,-20],duration:500,easing:'easeInCubic'});
+  },2000);
+}
+
+function addReflection(message){
+  const list = document.getElementById("reflections");
+  const li = document.createElement("li");
+  li.textContent = message;
+  list.prepend(li);
+}
+
+function formatTime(timestamp) {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
+
+// Auto-save every 5 minutes
+setInterval(saveProgress, 5 * 60 * 1000);
+
+// Load data on page load
+window.addEventListener('load', () => {
+  loadSavedData();
+  render();
+});
+
+// Auto-save before page closes
+window.addEventListener('beforeunload', (e) => {
+  saveProgress();
+});
+
+render();
+</script>
+
+</body>
+</html>
