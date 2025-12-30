@@ -79,15 +79,6 @@ button:hover { background:#222; }
 .level-up { animation: levelFlash 1s ease forwards; }
 @keyframes levelFlash { 0% { box-shadow:0 0 10px #00ff00; } 50% { box-shadow:0 0 25px #00ff00; transform: scale(1.05);} 100% { box-shadow:0 0 10px #00ff00; transform: scale(1);} }
 
-#reflectionPanel {
-  position:fixed; bottom:20px; left:20px;
-  background:#111; border:1px solid #444;
-  padding:15px; border-radius:8px;
-  max-height:300px; overflow:auto;
-  width:250px; color:#f5d58b;
-}
-#reflectionPanel h3 { margin-top:0; }
-
 /* Reflection Modal */
 .reflection-modal {
   position: fixed;
@@ -250,13 +241,8 @@ button:hover { background:#222; }
   <div class="square"></div>
 </div>
 
-<div id="reflectionPanel">
-  <h3>Reflections</h3>
-  <ul id="reflections"></ul>
-</div>
-
 <!-- Modals -->
-<div id="modalOverlay" class="modal-overlay"></div>
+<div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
 
 <!-- Reflection Modal -->
 <div id="reflectionModal" class="reflection-modal">
@@ -450,9 +436,6 @@ function saveProgress() {
     
     showToast("Progress saved successfully!");
     
-    // For GitHub Pages, we could implement cloud save here
-    // (Would require a backend or GitHub API integration)
-    
   } catch (e) {
     showToast("Error saving progress!");
     console.error("Save error:", e);
@@ -581,13 +564,11 @@ function openModal() {
 
 function closeModal() {
   document.getElementById("reflectionModal").classList.remove("active");
-  document.getElementById("modalOverlay").classList.remove("active");
   document.getElementById("editModal").classList.remove("active");
+  document.getElementById("modalOverlay").classList.remove("active");
   currentSkillIndex = null;
+  editingSkillIndex = null;
 }
-
-// Close modals when clicking overlay
-document.getElementById("modalOverlay").addEventListener("click', closeModal);
 
 // ---------------- ANIMATIONS ----------------
 function animatePulse(){
@@ -616,13 +597,6 @@ function showToast(message){
   },2000);
 }
 
-function addReflection(message){
-  const list = document.getElementById("reflections");
-  const li = document.createElement("li");
-  li.textContent = message;
-  list.prepend(li);
-}
-
 function formatTime(timestamp) {
   const date = new Date(timestamp);
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -642,6 +616,7 @@ window.addEventListener('beforeunload', (e) => {
   saveProgress();
 });
 
+// Initial render
 render();
 </script>
 
